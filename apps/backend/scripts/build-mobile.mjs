@@ -1,9 +1,10 @@
 /**
- * esbuild script: bundles the backend for @capacitor-community/capacitor-nodejs.
+ * esbuild script: bundles the backend for capacitor-nodejs (hampoelz/Capacitor-NodeJS).
  *
  * - Replaces all imports of lib/prisma.ts with lib/prisma-mobile.ts (sql.js)
- * - Marks the nodejs-mobile 'bridge' module as external
- * - Outputs a single CommonJS bundle to apps/android/nodejs-assets/nodejs-project/main.js
+ * - Marks the capacitor-nodejs 'bridge' module as external
+ * - Outputs to apps/android/public/nodejs/index.js so Vite copies it into dist/nodejs/
+ *   (capacitor.config.json: { "CapacitorNodeJS": { "nodeDir": "nodejs" } })
  */
 
 import esbuild from 'esbuild';
@@ -13,7 +14,7 @@ import { mkdirSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir   = resolve(__dirname, '..');
-const outDir    = resolve(__dirname, '../../android/nodejs-assets/nodejs-project');
+const outDir    = resolve(__dirname, '../../android/public/nodejs');
 
 mkdirSync(outDir, { recursive: true });
 
@@ -23,7 +24,7 @@ await esbuild.build({
   platform:    'node',
   format:      'cjs',
   target:      'node18',
-  outfile:     resolve(outDir, 'main.js'),
+  outfile:     resolve(outDir, 'index.js'),
 
   // 'bridge' is injected by nodejs-mobile at runtime
   external: ['bridge'],
@@ -47,4 +48,4 @@ await esbuild.build({
   logLevel:  'info',
 });
 
-console.log(`\n✓ Mobile bundle written to:\n  ${outDir}/main.js\n`);
+console.log(`\n✓ Mobile bundle written to:\n  ${outDir}/index.js\n`);
