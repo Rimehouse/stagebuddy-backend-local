@@ -29,7 +29,9 @@ npm run dev
 
 默认监听：
 
-- `http://127.0.0.1:3300`
+- `http://0.0.0.0:3300`（所有网络接口）
+- Android 模拟器访问地址：`http://10.0.2.2:3300`
+- Android 真机访问地址：`http://<宿主机局域网IP>:3300`
 
 健康检查：
 
@@ -132,6 +134,181 @@ await api('/api/sync/push', {
     themeIdx: safeLoad('stagebuddy_theme_idx', 0)
   })
 });
+```
+
+## Android 接入指南
+
+### 连接地址
+
+| 场景 | API Base URL |
+|------|-------------|
+| Android 模拟器 | `http://10.0.2.2:3300` |
+| Android 真机（同局域网） | `http://<宿主机IP>:3300` |
+
+### 依赖（build.gradle）
+
+```gradle
+implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+```
+
+### OkHttp 客户端封装
+
+```kotlin
+object ApiClient {
+    private const val BASE_URL = "http://10.0.2.2:3300" // 模拟器；真机改为宿主机 IP
+
+    private val prefs by lazy {
+        App.context.getSharedPreferences("stagebuddy", Context.MODE_PRIVATE)
+    }
+
+    private val okHttp = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val token = prefs.getString("access_token", null)
+            val req = if (token != null) {
+                chain.request().newBuilder()
+                    .addHeader("Authorization", "Bearer $token")
+                    .build()
+            } else chain.request()
+            chain.proceed(req)
+        }
+        .build()
+
+    val retrofit: Retrofit = Retrofit.Builder()
+        .baseUrl("$BASE_URL/")
+        .client(okHttp)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+}
+```
+
+### Retrofit 接口定义
+
+```kotlin
+interface StageBuddyApi {
+    // 鉴权
+    @POST("api/auth/register")
+    suspend fun register(@Body body: AuthBody): AuthResponse
+
+    @POST("api/auth/login")
+    suspend fun login(@Body body: AuthBody): AuthResponse
+
+    @GET("api/auth/me")
+    suspend fun me(): MeResponse
+
+    // 数据同步
+    @GET("api/sync/pull")
+    suspend fun pull(): SyncPayload
+
+    @POST("api/sync/push")
+    suspend fun push(@Body payload: SyncPayload): SyncPayload
+
+    // 曲目
+    @GET("api/songs")
+    suspend fun getSongs(): List<Song>
+
+    @POST("api/songs")
+    suspend fun createSong(@Body body: SongBody): Song
+
+    @PATCH("api/songs/{id}")
+    suspend fun updateSong(@Path("id") id: String, @Body body: SongBody): Song
+
+    @DELETE("api/songs/{id}")
+    suspend fun deleteSong(@Path("id") id: String): Response<Unit>
+
+    @POST("api/songs/{id}/cycle-status")
+    suspend fun cycleSongStatus(@Path("id") id: String): Song
+
+    @POST("api/songs/{id}/practice")
+    suspend fun practiceSong(@Path("id") id: String): Song
+
+    // Live
+    @GET("api/live/current")
+    suspend fun getCurrentLive(): LiveShow
+
+    @PUT("api/live/current")
+    suspend fun updateCurrentLive(@Body body: LiveBody): LiveShow
+
+    @PUT("api/live/current/setlist")
+    suspend fun updateSetlist(@Body body: SetlistBody): LiveShow
+
+    @POST("api/live/current/review")
+    suspend fun addReview(@Body body: ReviewBody): LiveReview
+
+    @GET("api/live/history")
+    suspend fun getLiveHistory(): List<LiveShow>
+
+    // 设置 & 状态
+    @GET("api/settings")
+    suspend fun getSettings(): UserSettings
+
+    @PUT("api/settings")
+    suspend fun updateSettings(@Body body: UserSettings): UserSettings
+
+    @PUT("api/condition")
+    suspend fun updateCondition(@Body body: ConditionBody): UserCondition
+
+    @PUT("api/idol-checks")
+    suspend fun updateIdolChecks(@Body body: Map<String, Boolean>): Map<String, Boolean>
+
+    // 粉丝
+    @GET("api/fans")
+    suspend fun getFans(): List<Fan>
+
+    @POST("api/fans")
+    suspend fun createFan(@Body body: FanBody): Fan
+}
+```
+
+### 首次登录 & Token 存储
+
+```kotlin
+suspend fun login(email: String, password: String) {
+    val api = ApiClient.retrofit.create(StageBuddyApi::class.java)
+    val resp = api.login(AuthBody(email, password))
+    prefs.edit().putString("access_token", resp.accessToken).apply()
+}
+```
+
+### 数据同步流程
+
+```kotlin
+// 启动时拉取远端数据
+suspend fun syncFromRemote() {
+    val payload = api.pull()
+    // 保存到本地 Room / SharedPreferences
+    localDb.saveAll(payload)
+}
+
+// 本地数据首次推送到服务器
+suspend fun pushLocalData() {
+    val payload = buildSyncPayload() // 从本地数据库组装
+    api.push(payload)
+}
+```
+
+### AndroidManifest.xml 权限
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
+
+如连接 HTTP（非 HTTPS）还需在 `res/xml/network_security_config.xml` 中允许明文流量：
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <!-- 真机调试时补充宿主机局域网 IP -->
+    </domain-config>
+</network-security-config>
+```
+
+```xml
+<!-- AndroidManifest.xml application 标签内 -->
+android:networkSecurityConfig="@xml/network_security_config"
 ```
 
 ## 设计取舍
