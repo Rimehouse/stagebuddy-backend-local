@@ -42,7 +42,6 @@ function Root() {
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       startNodeBackend()
-        .then(() => waitForServer())
         .then(() => setReady(true))
         .catch(e => setError(e.message))
     }

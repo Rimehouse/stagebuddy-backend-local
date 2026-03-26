@@ -10,7 +10,7 @@
 import esbuild from 'esbuild';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { mkdirSync } from 'fs';
+import { mkdirSync, copyFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir   = resolve(__dirname, '..');
@@ -27,14 +27,20 @@ await esbuild.build({
   outfile:     resolve(outDir, 'index.js'),
 
   // 'bridge' is injected by nodejs-mobile at runtime
+  // 'sql-asm.js' is copied separately to keep bundle small and parse fast
   external: ['bridge'],
 
   plugins: [{
-    name: 'prisma-to-sqljs',
+    name: 'mobile-rewrites',
     setup(build) {
-      // Redirect every import that ends with lib/prisma(.js) to lib/prisma-mobile.ts
+      // Redirect lib/prisma imports to sql.js layer
       build.onResolve({ filter: /[/\\]lib[/\\]prisma(\.js)?$/ }, () => ({
         path: resolve(rootDir, 'src/lib/prisma-mobile.ts'),
+      }));
+      // Don't bundle sql-asm.js — load it as a sibling file at runtime
+      build.onResolve({ filter: /sql-asm\.js$/ }, () => ({
+        path: './sql-asm.js',
+        external: true,
       }));
     },
   }],
@@ -48,4 +54,9 @@ await esbuild.build({
   logLevel:  'info',
 });
 
-console.log(`\n✓ Mobile bundle written to:\n  ${outDir}/index.js\n`);
+// Copy sql-asm.js alongside index.js so require('./sql-asm.js') works at runtime
+const sqljsSrc = resolve(rootDir, 'node_modules/sql.js/dist/sql-asm.js');
+copyFileSync(sqljsSrc, resolve(outDir, 'sql-asm.js'));
+
+console.log(`\n✓ Mobile bundle written to:\n  ${outDir}/index.js`);
+console.log(`✓ sql-asm.js copied to:    ${outDir}/sql-asm.js\n`);
