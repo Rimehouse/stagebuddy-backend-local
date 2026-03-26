@@ -1,0 +1,17 @@
+node_modules/
+
+# Backend
+apps/backend/dist/
+apps/backend/.env
+apps/backend/*.db
+apps/backend/*.db-journal
+
+# Frontend
+apps/android/dist/
+apps/android/android/.gradle/
+apps/android/android/app/build/
+apps/android/android/build/
+apps/android/*.keystore
+
+# Misc
+.DS_Store

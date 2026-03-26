@@ -1,0 +1,21 @@
+{
+  "name": "stagebuddy",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:android": "npm run dev --workspace=apps/android",
+    "build:backend": "npm run build --workspace=apps/backend",
+    "build:android": "npm run build --workspace=apps/android",
+    "build": "npm run build:backend && npm run build:android",
+    "android:sync": "npm run android:sync --workspace=apps/android",
+    "android:open": "npm run android:open --workspace=apps/android",
+    "db:generate": "npm run db:generate --workspace=apps/backend",
+    "db:migrate": "npm run db:migrate --workspace=apps/backend",
+    "db:push": "npm run db:push --workspace=apps/backend",
+    "db:studio": "npm run db:studio --workspace=apps/backend"
+  }
+}

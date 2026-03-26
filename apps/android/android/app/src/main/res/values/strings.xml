@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">StageBuddy</string>
+    <string name="title_activity_main">StageBuddy</string>
+    <string name="package_name">com.stagebuddy.app</string>
+    <string name="custom_url_scheme">com.stagebuddy.app</string>
+</resources>
