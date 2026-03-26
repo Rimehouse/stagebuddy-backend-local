@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum SongStatus {
+  new
+  almost
+  smooth
+}
+
+model User {
+  id              String             @id @default(cuid())
+  email           String             @unique
+  passwordHash    String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  songs           Song[]
+  liveShows       LiveShow[]
+  sessions        TrainingSession[]
+  performanceLogs PerformanceLog[]
+  reflections     ReflectionScore[]
+  settings        UserSettings?
+  idolChecks      IdolCheck[]
+  condition       UserCondition?
+}
+
+model Song {
+  id             String      @id @default(cuid())
+  userId         String
+  legacyId       String?
+  title          String
+  status         SongStatus  @default(new)
+  note           String?
+  callGuide      String?
+  callHints      Json?
+  mcKeywords     Json?
+  practiceCount  Int         @default(0)
+  retryCount     Int         @default(0)
+  passCount      Int         @default(0)
+  lastPractice   String?
+  lastPracticeAt BigInt?
+  nextSongId     String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([userId, legacyId])
+}
+
+model LiveShow {
+  id         String        @id @default(cuid())
+  userId     String
+  name       String
+  date       String
+  venue      String
+  isCurrent  Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setlist    SetlistItem[]
+  reviews    LiveReview[]
+  fanNotes   FanNote[]
+  logs       PerformanceLog[]
+
+  @@index([userId, isCurrent])
+}
+
+model SetlistItem {
+  id         String    @id @default(cuid())
+  liveShowId String
+  role       String?
+  song       String
+  order      Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  liveShow   LiveShow  @relation(fields: [liveShowId], references: [id], onDelete: Cascade)
+
+  @@unique([liveShowId, order])
+  @@index([liveShowId])
+}
+
+model LiveReview {
+  id         String    @id @default(cuid())
+  liveShowId String
+  feeling    String?
+  buppan     Json?
+  note       String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  liveShow   LiveShow  @relation(fields: [liveShowId], references: [id], onDelete: Cascade)
+
+  @@index([liveShowId])
+}
+
+model FanNote {
+  id         String    @id @default(cuid())
+  liveShowId String
+  name       String
+  tag        String?
+  note       String?
+  lastSeen   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  liveShow   LiveShow  @relation(fields: [liveShowId], references: [id], onDelete: Cascade)
+
+  @@index([liveShowId])
+}
+
+model TrainingSession {
+  id         String    @id @default(cuid())
+  userId     String
+  legacyId   String?
+  songId     String?
+  songTitle  String
+  startedAt  BigInt
+  endedAt    BigInt?
+  duration   Int       @default(0)
+  passes     Int       @default(0)
+  retries    Int       @default(0)
+  events     Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+  @@unique([userId, legacyId])
+}
+
+model PerformanceLog {
+  id             String    @id @default(cuid())
+  userId         String
+  songId         String?
+  liveShowId     String?
+  reactionScore  Int
+  callScore      Int
+  selfScore      Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  liveShow       LiveShow? @relation(fields: [liveShowId], references: [id], onDelete: SetNull)
+
+  @@index([userId, songId])
+  @@index([liveShowId])
+}
+
+model ReflectionScore {
+  id         String    @id @default(cuid())
+  userId     String
+  key        String
+  score      Int
+  note       String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+}
+
+model UserSettings {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  gentleRemind   Boolean   @default(true)
+  recoveryEntry  Boolean   @default(true)
+  themeIdx       Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model IdolCheck {
+  id         String    @id @default(cuid())
+  userId     String
+  key        String
+  checked    Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+}
+
+model UserCondition {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  value      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
