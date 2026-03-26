@@ -6710,7 +6710,7 @@ export default function MoodTuneApp() {
 
   return (
     <ThemeContext.Provider value={T}>
-    <div style={{ height: "100dvh", background: `linear-gradient(170deg, ${T.wall[0]}, ${T.wall[2]}, ${T.wall[4]})`, display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", padding: 0, fontFamily: "'Zen Maru Gothic', 'Noto Sans SC', -apple-system, sans-serif", position: "relative", overflow: "hidden", transition: "background 0.8s cubic-bezier(.25,.1,.25,1)" }}>
+    <div style={{ height: "100dvh", background: `linear-gradient(170deg, ${T.wall[0]}, ${T.wall[2]}, ${T.wall[4]})`, display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", padding: 0, paddingTop: "env(safe-area-inset-top)", fontFamily: "'Zen Maru Gothic', 'Noto Sans SC', -apple-system, sans-serif", position: "relative", overflow: "hidden", transition: "background 0.8s cubic-bezier(.25,.1,.25,1)" }}>
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Zen+Maru+Gothic:wght@400;500;700&family=Shippori+Mincho:wght@400;600;700;800&display=swap" rel="stylesheet" />
       <style>{`
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -6762,7 +6762,7 @@ export default function MoodTuneApp() {
             <div style={{ position: "absolute", top: 80, right: -30, width: 160, height: 160, borderRadius: "50%", background: `radial-gradient(circle, ${T.primary}0a, transparent 70%)`, zIndex: 0 }} />
             <div style={{ position: "absolute", bottom: 120, left: -20, width: 140, height: 140, borderRadius: "50%", background: `radial-gradient(circle, ${T.accent2}0c, transparent 70%)`, zIndex: 0 }} />
 
-            <div style={{ position: "relative", zIndex: 1, height: "100%", overflowY: "auto", paddingBottom: 108 }}>
+            <div style={{ position: "relative", zIndex: 1, height: "100%", overflowY: "auto", paddingBottom: "calc(108px + env(safe-area-inset-bottom))" }}>
               {tab === "home" && (
                 <HomeTab
                   onMoodReady={setLiveMood}
@@ -6875,8 +6875,8 @@ export default function MoodTuneApp() {
               <div style={{
                 ...navGlass(T),
                 borderRadius: 0,
-                height: 62,
-                padding: '0 6px 8px',
+                height: "calc(62px + env(safe-area-inset-bottom))",
+                padding: '0 6px calc(8px + env(safe-area-inset-bottom))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-around',

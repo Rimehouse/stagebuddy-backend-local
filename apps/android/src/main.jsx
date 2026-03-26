@@ -8,19 +8,19 @@ const API_BASE = 'http://127.0.0.1:3300'
 async function startNodeBackend() {
   if (!Capacitor.isNativePlatform()) return
 
-  const { NodeJS } = await import('@capacitor-community/capacitor-nodejs')
+  const { NodeJS } = await import('capacitor-nodejs')
   const { Filesystem, Directory } = await import('@capacitor/filesystem')
 
   const { uri } = await Filesystem.getUri({ path: '', directory: Directory.Data })
   const dataDir = uri.replace('file://', '')
 
   await new Promise((resolve, reject) => {
-    NodeJS.addListener('loaded', () => {
-      NodeJS.send({ eventName: 'init', args: [{ dataDir }] })
+    NodeJS.addListener('loaded', (_event) => {
+      NodeJS.send({ eventName: 'init', args: [dataDir] })
     })
-    NodeJS.addListener('ready', () => resolve())
-    NodeJS.addListener('error', (e) => reject(new Error(e?.message ?? 'Node.js error')))
-    NodeJS.start({ entryFilePath: 'main.js' }).catch(reject)
+    NodeJS.addListener('ready', (_event) => resolve())
+    NodeJS.addListener('error', (event) => reject(new Error(String(event.args?.[0] ?? 'Node.js error'))))
+    NodeJS.start().catch(reject)
   })
 }
 

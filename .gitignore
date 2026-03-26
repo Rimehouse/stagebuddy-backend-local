@@ -8,6 +8,7 @@ apps/backend/*.db-journal
 
 # Frontend
 apps/android/dist/
+apps/android/public/nodejs/
 apps/android/android/.gradle/
 apps/android/android/app/build/
 apps/android/android/build/

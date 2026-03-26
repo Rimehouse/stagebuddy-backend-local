@@ -65,16 +65,16 @@ async function startServer(dataDir: string): Promise<void> {
   await app.register(fansRoutes);
 
   await app.listen({ port: PORT, host: HOST });
-  channel.post('ready', { port: PORT });
+  channel.send('ready', PORT);
 }
 
 // Wait for Capacitor to send the data directory
-channel.on('init', (event: any) => {
-  const dataDir: string = event.args[0]?.dataDir ?? '.';
-  startServer(dataDir).catch((err) => {
-    channel.post('error', { message: String(err) });
+// capacitor-nodejs bridge: listener receives variadic args (not wrapped in object)
+channel.addListener('init', (dataDir: any) => {
+  startServer(String(dataDir ?? '.')).catch((err: unknown) => {
+    channel.send('error', String(err));
   });
 });
 
 // Signal that the script is loaded and waiting
-channel.post('loaded', {});
+channel.send('loaded');

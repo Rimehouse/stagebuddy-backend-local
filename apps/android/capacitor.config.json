@@ -10,8 +10,9 @@
     "overrideUserAgent": "StageBuddy/1.0 Android"
   },
   "plugins": {
-    "NodeJS": {
-      "entryFilePath": "main.js"
+    "CapacitorNodeJS": {
+      "nodeDir": "nodejs",
+      "startMode": "manual"
     },
     "SplashScreen": {
       "launchShowDuration": 800,
