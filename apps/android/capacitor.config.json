@@ -1,0 +1,20 @@
+{
+  "appId": "com.stagebuddy.app",
+  "appName": "StageBuddy",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "backgroundColor": "#0A0E20",
+    "overrideUserAgent": "StageBuddy/1.0 Android"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "launchAutoHide": true,
+      "backgroundColor": "#0A0E20",
+      "showSpinner": false
+    }
+  }
+}
