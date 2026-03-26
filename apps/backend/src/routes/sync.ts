@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../lib/auth.js';
-import { buildPullPayload, ensureCurrentLive, ensureUserDefaults, normalizeSongStatus, relativePracticeText } from '../utils/stagebuddy.js';
+import { buildPullPayload, ensureCurrentLive, ensureUserDefaults, normalizeSongStatus, relativePracticeText, toJson } from '../utils/stagebuddy.js';
 
 const syncSongSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
@@ -103,8 +103,8 @@ export const syncRoutes: FastifyPluginAsync = async (app) => {
           status: normalizeSongStatus(song.status),
           note: song.note,
           callGuide: song.callGuide,
-          callHints: song.callHints,
-          mcKeywords: song.mcKeywords,
+          callHints: toJson(song.callHints),
+          mcKeywords: toJson(song.mcKeywords),
           practiceCount: song.practiceCount,
           retryCount: song.retryCount,
           passCount: song.passCount,
@@ -139,7 +139,7 @@ export const syncRoutes: FastifyPluginAsync = async (app) => {
       }
       if (payload.nextLive.reviews.length > 0) {
         await tx.liveReview.createMany({
-          data: payload.nextLive.reviews.map((item) => ({ liveShowId: currentLive.id, feeling: item.feeling ?? null, buppan: item.buppan, note: item.note }))
+          data: payload.nextLive.reviews.map((item) => ({ liveShowId: currentLive.id, feeling: item.feeling ?? null, buppan: toJson(item.buppan), note: item.note }))
         });
       }
       if (payload.nextLive.fanNotes.length > 0) {
@@ -161,7 +161,7 @@ export const syncRoutes: FastifyPluginAsync = async (app) => {
             duration: item.duration,
             passes: item.passes,
             retries: item.retries,
-            events: item.events
+            events: toJson(item.events)
           }))
         });
       }

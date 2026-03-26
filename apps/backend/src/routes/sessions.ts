@@ -2,16 +2,22 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../lib/auth.js';
+import { fromJson, toJson } from '../utils/stagebuddy.js';
+
+function parseSession(item: Record<string, unknown>) {
+  return { ...item, events: fromJson(item.events as string, []) };
+}
 
 export const sessionsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/api/sessions', { preHandler: requireAuth }, async (request) => {
     const query = z.object({ limit: z.coerce.number().int().min(1).max(100).default(20), offset: z.coerce.number().int().min(0).default(0) }).parse(request.query);
-    return prisma.trainingSession.findMany({
+    const sessions = await prisma.trainingSession.findMany({
       where: { userId: request.user.userId },
       orderBy: [{ startedAt: 'desc' }],
       skip: query.offset,
       take: query.limit
     });
+    return sessions.map(parseSession);
   });
 
   app.post('/api/sessions/start', { preHandler: requireAuth }, async (request, reply) => {
@@ -23,7 +29,7 @@ export const sessionsRoutes: FastifyPluginAsync = async (app) => {
         songId: body.songId,
         songTitle: body.songTitle,
         startedAt: BigInt(startedAt),
-        events: [{ type: 'start', ts: startedAt }]
+        events: toJson([{ type: 'start', ts: startedAt }])
       }
     });
     if (body.songId) {
@@ -33,7 +39,7 @@ export const sessionsRoutes: FastifyPluginAsync = async (app) => {
       });
     }
     reply.code(201);
-    return session;
+    return parseSession(session as unknown as Record<string, unknown>);
   });
 
   app.patch('/api/sessions/:id/end', { preHandler: requireAuth }, async (request, reply) => {
@@ -44,7 +50,7 @@ export const sessionsRoutes: FastifyPluginAsync = async (app) => {
     const endedAt = Date.now();
     const updated = await prisma.trainingSession.update({
       where: { id: session.id },
-      data: { duration: body.duration, passes: body.passes, retries: body.retries, events: body.events, endedAt: BigInt(endedAt) }
+      data: { duration: body.duration, passes: body.passes, retries: body.retries, events: toJson(body.events), endedAt: BigInt(endedAt) }
     });
     if (session.songId) {
       await prisma.song.updateMany({
@@ -52,7 +58,7 @@ export const sessionsRoutes: FastifyPluginAsync = async (app) => {
         data: { passCount: { increment: body.passes }, retryCount: { increment: body.retries } }
       });
     }
-    return updated;
+    return parseSession(updated as unknown as Record<string, unknown>);
   });
 
   app.post('/api/sessions/:id/event', { preHandler: requireAuth }, async (request, reply) => {
@@ -60,9 +66,10 @@ export const sessionsRoutes: FastifyPluginAsync = async (app) => {
     const body = z.object({ type: z.string().min(1), ts: z.number().optional(), payload: z.record(z.any()).optional() }).parse(request.body);
     const session = await prisma.trainingSession.findFirst({ where: { id: params.id, userId: request.user.userId } });
     if (!session) return reply.code(404).send({ message: '练习会话不存在' });
-    const currentEvents = Array.isArray(session.events) ? session.events : [];
+    const currentEvents = fromJson(session.events, []) as unknown[];
     const nextEvents = [...currentEvents, { type: body.type, ts: body.ts ?? Date.now(), payload: body.payload ?? {} }];
-    return prisma.trainingSession.update({ where: { id: session.id }, data: { events: nextEvents } });
+    const updated = await prisma.trainingSession.update({ where: { id: session.id }, data: { events: toJson(nextEvents) } });
+    return parseSession(updated as unknown as Record<string, unknown>);
   });
 
   app.get('/api/sessions/stats/week', { preHandler: requireAuth }, async (request) => {

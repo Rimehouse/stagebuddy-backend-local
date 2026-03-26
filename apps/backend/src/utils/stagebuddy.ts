@@ -1,5 +1,13 @@
-import { SongStatus, type Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+
+export function fromJson<T>(value: string | null | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try { return JSON.parse(value) as T; } catch { return fallback; }
+}
+
+export function toJson(value: unknown): string {
+  return JSON.stringify(value);
+}
 
 export function relativePracticeText(timestamp?: number | null): string {
   if (!timestamp) return '刚刚';
@@ -14,21 +22,18 @@ export function relativePracticeText(timestamp?: number | null): string {
   return `${days}天前`;
 }
 
-export function normalizeSongStatus(status?: string | null): SongStatus {
+export function normalizeSongStatus(status?: string | null): string {
   switch ((status ?? '').toLowerCase()) {
-    case 'almost':
-      return SongStatus.almost;
-    case 'smooth':
-      return SongStatus.smooth;
-    default:
-      return SongStatus.new;
+    case 'almost': return 'almost';
+    case 'smooth': return 'smooth';
+    default: return 'new';
   }
 }
 
-export function cycleSongStatus(status: SongStatus): SongStatus {
-  if (status === SongStatus.new) return SongStatus.almost;
-  if (status === SongStatus.almost) return SongStatus.smooth;
-  return SongStatus.new;
+export function cycleSongStatus(status: string): string {
+  if (status === 'new') return 'almost';
+  if (status === 'almost') return 'smooth';
+  return 'new';
 }
 
 export async function ensureCurrentLive(userId: string) {
@@ -87,8 +92,8 @@ export async function buildPullPayload(userId: string) {
       retryCount: item.retryCount,
       passCount: item.passCount,
       callGuide: item.callGuide ?? '',
-      callHints: Array.isArray(item.callHints) ? item.callHints : [],
-      mcKeywords: Array.isArray(item.mcKeywords) ? item.mcKeywords : [],
+      callHints: fromJson(item.callHints, []),
+      mcKeywords: fromJson(item.mcKeywords, []),
       nextSongId: item.nextSongId ?? null,
       lastPractice: item.lastPractice ?? '刚刚',
       lastPracticeAt: item.lastPracticeAt ? Number(item.lastPracticeAt) : null
@@ -109,7 +114,7 @@ export async function buildPullPayload(userId: string) {
       reviews: live.reviews.map((item) => ({
         id: item.id,
         feeling: item.feeling ?? null,
-        buppan: (item.buppan ?? { cheki: 0, sign: 0 }) as Prisma.JsonValue,
+        buppan: fromJson(item.buppan, { cheki: 0, sign: 0 }),
         note: item.note ?? '',
         createdAt: item.createdAt.toISOString()
       }))
@@ -123,7 +128,7 @@ export async function buildPullPayload(userId: string) {
       duration: item.duration,
       passes: item.passes,
       retries: item.retries,
-      events: Array.isArray(item.events) ? item.events : []
+      events: fromJson(item.events, [])
     })),
     settings: {
       gentleRemind: settings?.gentleRemind ?? true,
